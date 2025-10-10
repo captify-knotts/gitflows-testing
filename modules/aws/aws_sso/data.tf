@@ -18,4 +18,4 @@ data "aws_identitystore_user" "this" {
 }
 
 
-# minor change
+# major change
