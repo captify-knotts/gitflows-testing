@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, closed] # Closed required
     branches:
-      - semrel
+      - main
 
 permissions:
   contents: write # Required for to push tags, create release, and push changes to the wiki
