@@ -1,0 +1,44 @@
+name: Terraform Module Releaser (Test)
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+    branches:
+      - main  
+
+permissions:
+  contents: write # Required for to push tags, create release, and push changes to the wiki 
+  pull-requests: write # Required to comment on pull request
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Terraform Module Releaser
+        uses: techpivot/terraform-module-releaser@v1
+        id: release
+        with:
+          use-ssh-source-format: true
+          major-keywords: major update,breaking change
+          minor-keywords: feat,feature
+          patch-keywords: fix,chore,docs
+          default-first-tag: v0.1.0
+          use-version-prefix: true
+          tag-directory-separator: /
+          module-path-ignore: examples/**,scripts/**,test/**,.github/**
+          module-change-exclude-patterns: .gitignore,*.md,docs/**,examples/**,*.tftest.hcl,tests/**
+          module-asset-exclude-patterns: .gitignore,*.md,*.tftest.hcl,tests/**
+          module-ref-mode: tag
+
+      - id: debug
+        name: Debug
+        run: |
+          echo '${{ toJSON(steps.release.outputs) }}'
+          echo ${{ steps.release.outputs.changed-module-names }}
+          echo ${{ steps.release.outputs.changed-module-paths }}
+          echo ${{ steps.release.outputs.changed-modules-map }}
+          echo ${{ steps.release.outputs.all-module-names }}
+          echo ${{ steps.release.outputs.all-module-paths }}
+          echo ${{ steps.release.outputs.all-modules-map }}
