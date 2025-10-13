@@ -30,9 +30,9 @@ jobs:
           delete-legacy-tags: true
           disable-wiki: false
           wiki-sidebar-changelog-max: 10
-          module-path-ignore: "**/examples/**,.github/**"
-          module-change-exclude-patterns: ".gitignore,*.md,docs/**,examples/**,*.tftest.hcl,tests/**"
-          module-asset-exclude-patterns: ".gitignore,*.md,*.tftest.hcl,tests/**,examples/**"
+          module-path-ignore: "modules/aws/*/examples/**,modules/aws/**/examples/**,**/examples/**,scripts/**,test/**,.github/**"
+          module-change-exclude-patterns: ".gitignore,*.md,docs/**,**/examples/**,*.tftest.hcl,tests/**"
+          module-asset-exclude-patterns: ".gitignore,*.md,*.tftest.hcl,tests/**"
           use-ssh-source-format: true
           tag-directory-separator: /
           use-version-prefix: true
