@@ -31,8 +31,8 @@ jobs:
           disable-wiki: false
           wiki-sidebar-changelog-max: 10
           module-path-ignore: "**/examples/**,scripts/**,test/**,.github/**"
-          module-change-exclude-patterns: ".gitignore,*.md,docs/**,**/examples/**,*.tftest.hcl,tests/**"
-          module-asset-exclude-patterns: ".gitignore,*.md,*.tftest.hcl,tests/**"
+          module-change-exclude-patterns: ".gitignore,*.md,docs/**,examples/**,*.tftest.hcl,tests/**"
+          module-asset-exclude-patterns: ".gitignore,*.md,*.tftest.hcl,tests/**,examples/**"
           use-ssh-source-format: true
           tag-directory-separator: /
           use-version-prefix: true
