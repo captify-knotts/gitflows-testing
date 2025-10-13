@@ -20,7 +20,7 @@ jobs:
           fetch-depth: 0 
 
       - name: Terraform Module Releaser
-        uses: techpivot/terraform-module-releaser@v1
+        uses: techpivot/terraform-module-releaser@v1.7.1
         with:
           major-keywords: major update,breaking change
           minor-keywords: feat,feature
