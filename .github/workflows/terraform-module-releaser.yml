@@ -30,7 +30,7 @@ jobs:
           delete-legacy-tags: true
           disable-wiki: false
           wiki-sidebar-changelog-max: 10
-          module-path-ignore: "/modules/aws/aws_ssooo/examples/**,**/examples/**,scripts/**,test/**,.github/**,.template/**,**/examples/main.tf"
+          module-path-ignore: "modules/aws/aws_ssooo/examples/main.tf,**/examples/**,scripts/**,test/**,.github/**,.template/**,**/examples/main.tf"
           module-change-exclude-patterns: ".gitignore,*.md,docs/**,examples/**,*.tftest.hcl,tests/**"
           module-asset-exclude-patterns: ".gitignore,*.md,*.tftest.hcl,tests/**,examples/**"
           use-ssh-source-format: true
