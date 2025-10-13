@@ -36,7 +36,7 @@ jobs:
           use-ssh-source-format: true
           tag-directory-separator: /
           use-version-prefix: true
-          module-ref-mode: tag
+          module-ref-mode: sha
           wiki-usage-template: |
             This is a custom wiki usage block that supports markdown.
 
