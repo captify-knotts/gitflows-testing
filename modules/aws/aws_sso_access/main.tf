@@ -68,3 +68,4 @@ resource "aws_ssoadmin_permission_set_inline_policy" "this" {
 
   depends_on = [aws_ssoadmin_account_assignment.this]
 }
+# comment
