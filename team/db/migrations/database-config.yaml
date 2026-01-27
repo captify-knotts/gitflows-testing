@@ -1,0 +1,17 @@
+description: "RDS C3 database migrations"
+
+migrator:
+  postgres_version: 15
+  postgres_jdbc_version: 42.7.8
+  flyway_version: 10.20.0
+
+database:
+  name: "c3"
+
+environments:
+  qa:
+    database:
+      name: "QA"
+  prod:
+    database:
+      name: "PROD"
