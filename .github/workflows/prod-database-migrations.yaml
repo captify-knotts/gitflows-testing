@@ -49,8 +49,8 @@ jobs:
 
   parse_config:
     runs-on: ubuntu-latest
-    env:
-      MIGRATIONS_PATH: ${{ needs.detect_changes.outputs.migrations_path }}
+    needs: detect_changes
+    if: needs.detect_changes.outputs.any_changed == 'true' && needs.detect_changes.outputs.migrations_path != ''
     outputs:
       db_name: ${{ steps.config.outputs.db_name }}
 
@@ -64,7 +64,9 @@ jobs:
           sudo chmod +x /usr/local/bin/yq
 
       - name: Parse Config file
-        id: config
+        id: config    
+        env:
+          MIGRATIONS_PATH: ${{ needs.detect_changes.outputs.migrations_path }}
         run: |
           CONFIG_FILE="$$MIGRATIONS_PATH/database-config.yaml"
           DB_NAME=$(yq '.database.name' "$CONFIG_FILE")
