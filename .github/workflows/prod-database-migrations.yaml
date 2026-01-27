@@ -68,7 +68,7 @@ jobs:
         env:
           MIGRATIONS_PATH: ${{ needs.detect_changes.outputs.migrations_path }}
         run: |
-          CONFIG_FILE="$$MIGRATIONS_PATH/database-config.yaml"
+          CONFIG_FILE="$MIGRATIONS_PATH/database-config.yaml"
           DB_NAME=$(yq '.database.name' "$CONFIG_FILE")
           echo "db_name=$DB_NAME" >> $GITHUB_OUTPUT
 
