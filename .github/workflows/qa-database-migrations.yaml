@@ -89,6 +89,8 @@ jobs:
     
     steps:
       - name: output
+        env:
+           MIGRATIONS_PATH: ${{ needs.detect_changes.outputs.migrations_path }}
         run: |
           {
           echo "════════════════════════════════════════════════════════════"
