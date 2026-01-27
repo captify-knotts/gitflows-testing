@@ -1,4 +1,4 @@
-name: QA Database Migrations
+name: PROD Database Migrations
 
 on:
   push:
@@ -49,9 +49,10 @@ jobs:
 
   parse_config:
     runs-on: ubuntu-latest
+    env:
+      MIGRATIONS_PATH: ${{ needs.detect_changes.outputs.migrations_path }}
     outputs:
       db_name: ${{ steps.config.outputs.db_name }}
-
 
     steps:
       - name: Checkout
@@ -65,11 +66,10 @@ jobs:
       - name: Parse Config file
         id: config
         run: |
-          CONFIG_FILE="${{ env.MIGRATIONS_PATH }}/database-config.yaml"
-
+          CONFIG_FILE="$$MIGRATIONS_PATH/database-config.yaml"
           DB_NAME=$(yq '.database.name' "$CONFIG_FILE")
-
           echo "db_name=$DB_NAME" >> $GITHUB_OUTPUT
+
 
   output_name:
     runs-on: ubuntu-latest
@@ -80,6 +80,6 @@ jobs:
         run: |
           {
           echo "════════════════════════════════════════════════════════════"
-          echo "🐳 $DB_NAME 🐳"
+          echo "🐳 ${{ needs.parse_config.outputs.db_name }} 🐳"
           echo "════════════════════════════════════════════════════════════"        
           } >> "$GITHUB_STEP_SUMMARY"
