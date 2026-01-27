@@ -3,34 +3,16 @@ name: QA Database Migrations
 on:
   workflow_dispatch:
   pull_request:
+    types: [opened, synchronize, reopened]
 
 env:
   AWS_REGION: "eu-west-1"
   ENV: "qa"
 
 jobs:
-
-  check_branch:
-    runs-on: ubuntu-latest
-    outputs:
-      is_valid_branch: ${{ steps.check.outputs.is_valid_branch }}
-    steps:
-      - name: Check branch name
-        id: check
-        run: |
-          BRANCH_NAME="${{ github.ref_name }}"
-          echo "Current branch: $BRANCH_NAME"
-          
-          if [[ "$BRANCH_NAME" =~ ^migration/ ]]; then
-            echo "Branch name is valid (starts with 'migration/')"
-            echo "is_valid_branch=true" >> $GITHUB_OUTPUT
-          else
-            echo "Branch name must start with 'migration/'"
-            echo "is_valid_branch=false" >> $GITHUB_OUTPUT
-          fi
-
   detect_changes:
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event_name == 'workflow_dispatch'
     outputs:
       any_changed: ${{ steps.changed-files.outputs.any_changed }} 
       all_changed_files: ${{ steps.changed-files.outputs.all_changed_files }}
