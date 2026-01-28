@@ -5,9 +5,6 @@ on:
   pull_request:
     branches:
       - 'migration/**'
-  push:
-    branches:
-      - 'migration/**'
 
 env:
   AWS_REGION: "eu-west-1"
