@@ -1,0 +1,39 @@
+description: "RDS C3 database migrations"
+
+migrator:
+  postgres_version: 15
+  postgres_jdbc_version: 42.7.8
+  flyway_version: 10.20.0
+
+database:
+  name: "c3"
+
+ecr_repo: "412792291881.dkr.ecr.eu-west-1.amazonaws.com/migrations"
+
+environments:
+  qa:
+    database:
+      account: "637423400328"
+      identifier: "rds-c3-qa-test"
+      host: "rds-c3-qa-test.cf2w06aeql0l.eu-west-1.rds.amazonaws.com"
+      arn: "arn:aws:rds:eu-west-1:637423400328:db:rds-c3-qa"
+      port: 5432
+      user: "rw.spark.db.qa"
+      ssm_password_path: "/legacy/qa/rw.spark.db.qa"
+
+  prod:
+    database:
+      account: "905417998324"
+      identifier: "rds-c3-prod"
+      host: "rds-c3-prod.cf2w06aeql0l.eu-west-1.rds.amazonaws.com"
+      arn: "arn:aws:rds:eu-west-1:905417998324:db:rds-c3-prod"
+      port: 5432
+      user: "rw.spark.db.prod"
+      ssm_password_path: "/legacy/prod/rw.spark.db.prod"
+
+
+# REQUIRED FOR COST ALLOCATION: TAGS
+market: "shared"
+owner: "act"
+service: "segment-distribution"
+product: "segment-distribution"
