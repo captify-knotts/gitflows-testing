@@ -18,7 +18,7 @@ env:
 jobs:
 
   parse_config:
-    runs-on: gha-amd64-small
+    runs-on: ubuntu:latest
 
     outputs:
       db_account: ${{ steps.config.outputs.db_account }}
@@ -80,7 +80,7 @@ jobs:
           echo "db_tags=$DB_TAGS" >> $GITHUB_OUTPUT
 
   dryrun_migrations:
-    runs-on: gha-amd64-small
+    runs-on: ubuntu:latest
     needs: [parse_config]
     if: |
       github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
