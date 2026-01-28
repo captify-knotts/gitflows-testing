@@ -1,0 +1,230 @@
+name: Flyway Migrations Dry Run
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - 'migration/**'
+  push:
+    branches:
+      - 'migration/**'
+
+env:
+  AWS_REGION: "eu-west-1"
+  ENV: "qa"
+  MIGRATIONS_PATH: "activation/c3-db-migrations"
+
+
+jobs:
+
+  parse_config:
+    runs-on: gha-amd64-small
+
+    outputs:
+      db_account: ${{ steps.config.outputs.db_account }}
+      db_identifier: ${{ steps.config.outputs.db_identifier }}
+      db_tags: ${{ steps.config.outputs.db_tags }}
+      db_name: ${{ steps.config.outputs.db_name }}
+      db_host: ${{ steps.config.outputs.db_host }}
+      db_port: ${{ steps.config.outputs.db_port }}
+      db_user: ${{ steps.config.outputs.db_user }}
+      ssm_path: ${{ steps.config.outputs.ssm_path }}
+      ecr_repo: ${{ steps.config.outputs.ecr_repo }}
+      postgres_version: ${{ steps.config.outputs.postgres_version }}
+      flyway_version: ${{ steps.config.outputs.flyway_version }}
+      postgres_jdbc_version: ${{ steps.config.outputs.postgres_jdbc_version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+          
+      - name: Install yq
+        run: |
+          sudo curl -L -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Parse Config file
+        id: config
+        run: |
+          CONFIG_FILE="${{ env.MIGRATIONS_PATH }}/database-config.yaml"
+
+          DB_NAME=$(yq '.database.name' "$CONFIG_FILE")
+          DB_ACCOUNT=$(yq '.environments.qa.database.account' "$CONFIG_FILE")
+          DB_HOST=$(yq '.environments.qa.database.host' "$CONFIG_FILE")
+          DB_PORT=$(yq '.environments.qa.database.port' "$CONFIG_FILE")
+          DB_IDENTIFIER=$(yq '.environments.qa.database.identifier' "$CONFIG_FILE")
+          ECR_REPO=$(yq '.ecr_repo' "$CONFIG_FILE")
+          POSTGRES_VERSION=$(yq '.migrator.postgres_version' "$CONFIG_FILE")
+          FLYWAY_VERSION=$(yq '.migrator.flyway_version' "$CONFIG_FILE")
+          POSTGRES_JDBC_VERSION=$(yq '.migrator.postgres_jdbc_version' "$CONFIG_FILE")
+          DB_USER=$(yq '.environments.qa.database.user' "$CONFIG_FILE")
+          SSM_PATH=$(yq '.environments.qa.database.ssm_password_path' "$CONFIG_FILE")
+
+          MARKET=$(yq '.market' "$CONFIG_FILE")
+          OWNER=$(yq '.owner' "$CONFIG_FILE")
+          SERVICE=$(yq '.service' "$CONFIG_FILE")
+          PRODUCT=$(yq '.product' "$CONFIG_FILE")
+          DB_TAGS="Key=captify:market,Value=$MARKET Key=captify:owner,Value=$OWNER Key=captify:service,Value=$SERVICE Key=captify:product,Value=$PRODUCT"
+
+          echo "db_name=$DB_NAME" >> $GITHUB_OUTPUT
+          echo "db_account=$DB_ACCOUNT" >> $GITHUB_OUTPUT
+          echo "db_host=$DB_HOST" >> $GITHUB_OUTPUT
+          echo "db_port=$DB_PORT" >> $GITHUB_OUTPUT
+          echo "db_identifier=$DB_IDENTIFIER" >> $GITHUB_OUTPUT
+          echo "ecr_repo=$ECR_REPO" >> $GITHUB_OUTPUT
+          echo "postgres_version=$POSTGRES_VERSION" >> $GITHUB_OUTPUT
+          echo "flyway_version=$FLYWAY_VERSION" >> $GITHUB_OUTPUT
+          echo "postgres_jdbc_version=$POSTGRES_JDBC_VERSION" >> $GITHUB_OUTPUT
+          echo "db_user=$DB_USER" >> $GITHUB_OUTPUT
+          echo "ssm_path=$SSM_PATH" >> $GITHUB_OUTPUT
+          echo "db_tags=$DB_TAGS" >> $GITHUB_OUTPUT
+
+  dryrun_migrations:
+    runs-on: gha-amd64-small
+    needs: [parse_config]
+    if: |
+      github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install yq & AWS cli
+        run: |
+          sudo curl -L -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+
+      - name: Make scripts executable
+        run: chmod +x .github/scripts/database-migrations/*.sh
+
+      - name: Install Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Flyway
+        run: |
+          .github/scripts/database-migrations/install_flyway.sh \
+            "${{ needs.parse_config.outputs.flyway_version }}" \
+            "${{ needs.parse_config.outputs.postgres_jdbc_version }}" \
+            "${{ needs.parse_config.outputs.postgres_version }}" \
+            "${{ env.ENV }}"
+
+
+      - name: Configure AWS credentials for migrations
+        uses: aws-actions/configure-aws-credentials@v5.1.1
+        with:
+          role-to-assume: arn:aws:iam::${{ needs.parse_config.outputs.db_account }}:role/github-actions-runner
+          role-session-name: github-runner
+          aws-region: ${{ env.AWS_REGION }}
+          role-chaining: true
+          role-duration-seconds: 3600
+
+      - name: Dry run migrations
+        run: |
+          DB_HOST="${{ needs.parse_config.outputs.db_host }}"
+          DB_PORT="${{ needs.parse_config.outputs.db_port }}"
+          DB_NAME="${{ needs.parse_config.outputs.db_name }}"
+          DB_USER="${{ needs.parse_config.outputs.db_user }}"
+          SSM_PATH="${{ needs.parse_config.outputs.ssm_path }}"
+
+          # Construct the full migrations path
+          MIGRATIONS_BASE_PATH="${{ env.MIGRATIONS_PATH }}"
+          MIGRATIONS_PATH="$(pwd)/${MIGRATIONS_BASE_PATH}/migrations"
+
+          echo "════════════════════════════════════════════════════════════"
+          echo "🐳 DRY RUN MIGRATIONS STATUS 🐳"
+          echo "════════════════════════════════════════════════════════════"
+
+          # Run all three migration types
+          echo "::group::Applying regular migrations"
+          REGULAR_OUTPUT=$(.github/scripts/database-migrations/apply_migrations.sh \
+            "$DB_HOST" "$DB_PORT" "$DB_NAME" "$DB_USER" "$SSM_PATH" \
+            "${{ env.MIGRATIONS_PATH }}/migrations" "regular" "${{ env.ENV }}" true 2>&1)
+          echo "**Regular migrations output:**" >> $GITHUB_STEP_SUMMARY
+          echo "$REGULAR_OUTPUT" | grep -A1 "Current version of schema" >> $GITHUB_STEP_SUMMARY
+          echo "::endgroup::"
+
+          echo "::group::Applying repeatable migrations"
+          REPEATABLE_OUTPUT=$(.github/scripts/database-migrations/apply_migrations.sh \
+            "$DB_HOST" "$DB_PORT" "$DB_NAME" "$DB_USER" "$SSM_PATH" \
+            "${{ env.MIGRATIONS_PATH }}/migrations" "repeatable" "${{ env.ENV }}" true 2>&1)
+          echo ""
+          echo "**Repeatable migrations output:**" >> $GITHUB_STEP_SUMMARY
+          echo "$REPEATABLE_OUTPUT" | grep -A1 "Current version of schema" >> $GITHUB_STEP_SUMMARY
+          echo "::endgroup::"
+
+          echo "::group::Applying utility migrations"
+          UTILITY_OUTPUT=$(.github/scripts/database-migrations/apply_migrations.sh \
+            "$DB_HOST" "$DB_PORT" "$DB_NAME" "$DB_USER" "$SSM_PATH" \
+            "${{ env.MIGRATIONS_PATH }}/migrations" "utility" "${{ env.ENV }}" true 2>&1)
+          echo ""
+          echo "**Utility migrations output:**" >> $GITHUB_STEP_SUMMARY
+          echo "$UTILITY_OUTPUT" | grep -A1 "Current version of schema" >> $GITHUB_STEP_SUMMARY
+          echo "::endgroup::"
+
+          echo "$REGULAR_OUTPUT" > /tmp/regular_output.txt
+          echo "$REPEATABLE_OUTPUT" > /tmp/repeatable_output.txt
+          echo "$UTILITY_OUTPUT" > /tmp/utility_output.txt
+
+      - name: Update Pull Request
+        uses: actions/github-script@v8
+        if: github.event_name == 'pull_request'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+
+            const regularOutput = fs.readFileSync('/tmp/regular_output.txt', 'utf8');
+            const repeatableOutput = fs.readFileSync('/tmp/repeatable_output.txt', 'utf8');
+            const utilityOutput = fs.readFileSync('/tmp/utility_output.txt', 'utf8');
+
+
+            const commentBody = `
+                ## Database Migration Dry Run Results
+
+                **Regular migrations:**
+                \`\`\`
+                ${regularOutput}
+                \`\`\`
+
+                **Repeatable migrations:**
+                \`\`\`
+                ${repeatableOutput}
+                \`\`\`
+
+                **Utility migrations:**
+                \`\`\`
+                ${utilityOutput}
+                \`\`\`
+                      `;
+      
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const existingComment = comments.find(c => 
+              c.user.type === 'Bot' && c.body.includes('Database Migration Dry Run Results')
+            );
+            
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: commentBody
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: commentBody
+              });
+            }
