@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: builds-main
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/main'
         uses: nick-fields/retry@v3
 
         with:
@@ -22,7 +22,7 @@ jobs:
           command: echo "I'll run 3 times" && exit 1
 
       - name: builds-feature
-        if: github.ref != 'refs/heads/master'
+        if: github.ref != 'refs/heads/main'
         uses: nick-fields/retry@v3
         with:
           max_attempts: 1
