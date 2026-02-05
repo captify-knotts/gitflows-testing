@@ -14,23 +14,18 @@ jobs:
       - name: builds-main
         if: github.ref == 'refs/heads/master'
         uses: nick-fields/retry@v3
-        run: |
-          echo "I'll run 3 times"
-          exit 1
+
         with:
           max_attempts: 3
           timeout_minutes: 90
           retry_on: error
-          command: .github/scripts/execute-steps.sh ${{ matrix.arch }}
+          command: echo "I'll run 3 times" && exit 1
 
       - name: builds-feature
         if: github.ref != 'refs/heads/master'
         uses: nick-fields/retry@v3
-        run: |
-          echo "I'll run 3 times"
-          exit 1
         with:
           max_attempts: 1
           timeout_minutes: 90
           retry_on: error
-          command: .github/scripts/execute-steps.sh ${{ matrix.arch }}
+          command: echo "I'll run 1 times" && exit 1
