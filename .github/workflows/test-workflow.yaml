@@ -1,0 +1,36 @@
+name: Build Applications (Sequential Steps)
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+
+jobs:
+  run-builds:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: builds-main
+        if: github.ref == 'refs/heads/master'
+        uses: nick-fields/retry@v3
+        run: |
+          echo "I'll run 3 times"
+          exit 1
+        with:
+          max_attempts: 3
+          timeout_minutes: 90
+          retry_on: error
+          command: .github/scripts/execute-steps.sh ${{ matrix.arch }}
+
+      - name: builds-feature
+        if: github.ref != 'refs/heads/master'
+        uses: nick-fields/retry@v3
+        run: |
+          echo "I'll run 3 times"
+          exit 1
+        with:
+          max_attempts: 1
+          timeout_minutes: 90
+          retry_on: error
+          command: .github/scripts/execute-steps.sh ${{ matrix.arch }}
